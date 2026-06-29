@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中学数学・完全網羅ドリル（40問）</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; background-color: #f4f7f6; }
+        .card { border: 1px solid #ddd; padding: 2rem; border-radius: 12px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .option-btn { display: block; width: 100%; padding: 1rem; margin: 0.5rem 0; cursor: pointer; background: #fff; border: 2px solid #007bff; border-radius: 8px; text-align: left; transition: all 0.2s; font-size: 1rem; }
+        .option-btn:hover { background: #e7f1ff; }
+        .feedback { margin-top: 1rem; font-weight: bold; text-align: center; min-height: 1.5em; }
+        #progress { margin-bottom: 1rem; font-size: 0.9rem; color: #555; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        .hidden { display: none; }
+        h1 { font-size: 1.5rem; color: #333; margin-top: 0; }
+    </style>
+
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</head>
+<body>
+
+<div class="card" id="app">
+    <h1>中学数学ドリル（40問）</h1>
+    <div id="quiz-area">
+        <div id="progress"></div>
+        <p id="question-text" style="font-weight: bold; font-size: 1.2rem;"></p>
+        <div id="options-area"></div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+    <div id="result-area" class="hidden">
+        <h2>終了！</h2>
+        <p>正解数: <span id="score"></span> / <span id="total"></span></p>
+        <button onclick="location.reload()" style="padding: 1rem 2rem; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">もう一度挑戦</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "自然数nの素因数分解とは？", a: "素数の積に直すこと", options: ["素数の積に直すこと", "因数を足すこと", "nを素数で割ること", "約数をすべて書き出すこと", "倍数を並べること"] },
+        { q: "負の数同士の積は？", a: "正の数", options: ["正の数", "負の数", "0", "絶対値の差", "絶対値の和"] },
+        { q: "円の周の長さの公式 (半径r)", a: "2πr", options: ["2πr", "πr^2", "πr", "4πr", "2r"] },
+        { q: "円の面積の公式 (半径r)", a: "πr^2", options: ["πr^2", "2πr", "πr", "4πr^2", "r^2"] },
+        { q: "扇形の弧の長さ (半径r, 中心角a°)", a: "2πr×a/360", options: ["2πr×a/360", "πr^2×a/360", "2πr×360/a", "πr×a/180", "2πr×a/180"] },
+        { q: "扇形の面積 (半径r, 中心角a°)", a: "πr^2×a/360", options: ["πr^2×a/360", "2πr×a/360", "πr^2×a/180", "πr×a/360", "πr^2×360/a"] },
+        { q: "円錐の体積 (底面積S, 高さh)", a: "1/3Sh", options: ["1/3Sh", "Sh", "2/3Sh", "1/2Sh", "1/4Sh"] },
+        { q: "球の体積 (半径r)", a: "4/3πr^3", options: ["4/3πr^3", "4πr^2", "4/3πr^2", "πr^3", "2/3πr^3"] },
+        { q: "球の表面積 (半径r)", a: "4πr^2", options: ["4πr^2", "2πr^2", "4/3πr^3", "πr^2", "4πr"] },
+        { q: "展開公式: (x+a)(x+b)", a: "x^2+(a+b)x+ab", options: ["x^2+(a+b)x+ab", "x^2+ax+b", "x^2+(a+b)x+a+b", "x^2+abx+ab", "x^2+ax+ab"] },
+        { q: "展開公式: (x+a)^2", a: "x^2+2ax+a^2", options: ["x^2+2ax+a^2", "x^2+a^2", "x^2+ax+a^2", "x^2+2ax+2a", "x^2+ax+2a"] },
+        { q: "展開公式: (x-a)^2", a: "x^2-2ax+a^2", options: ["x^2-2ax+a^2", "x^2+a^2", "x^2-ax+a^2", "x^2-2ax-a^2", "x^2+2ax+a^2"] },
+        { q: "展開公式: (x+a)(x-a)", a: "x^2-a^2", options: ["x^2-a^2", "x^2+a^2", "x^2-2ax+a^2", "x^2+2ax-a^2", "x^2-a"] },
+        { q: "三平方の定理 (直角三角形 a,b, 斜辺c)", a: "a^2+b^2=c^2", options: ["a^2+b^2=c^2", "a+b=c", "a^2-b^2=c^2", "a^2+b^2=c", "a^2+c^2=b^2"] },
+        { q: "二次方程式の解の公式 (ax^2+bx+c=0)", a: "(-b±√(b^2-4ac))/2a", options: ["(-b±√(b^2-4ac))/2a", "(-b±√(b^2+4ac))/2a", "(b±√(b^2-4ac))/2a", "(-b±√(b^2-ac))/2a", "(-b±√(b^2-4ac))/a"] },
+        { q: "比例の式", a: "y=ax", options: ["y=ax", "y=a/x", "y=ax+b", "y=ax^2", "y=a/x^2"] },
+        { q: "反比例の式", a: "y=a/x", options: ["y=a/x", "y=ax", "y=ax+b", "y=ax^2", "y=x/a"] },
+        { q: "一次関数の式", a: "y=ax+b", options: ["y=ax+b", "y=ax", "y=a/x", "y=ax^2+b", "y=x+a"] },
+        { q: "二次関数の式", a: "y=ax^2", options: ["y=ax^2", "y=ax+b", "y=ax^2+bx+c", "y=ax", "y=a/x"] },
+        { q: "変化の割合 (一次関数)", a: "一定 (傾きa)", options: ["一定 (傾きa)", "xの値により変わる", "yの値により変わる", "0", "1"] },
+        { q: "三角形の合同条件 (3つ)", a: "3組の辺が等しい他", options: ["3組の辺/2組と挟む角/1組と両端の角", "3組の辺/3組の角/1組の辺", "2組の辺/2組の角/面積が等しい", "すべて同じ形", "頂点が等しい"] },
+        { q: "三角形の相似条件 (3つ)", a: "3組の辺の比/2組の辺の比と挟む角/2組の角", options: ["3組の辺の比/2組の辺の比と挟む角/2組の角", "3組の辺が等しい/3組の角が等しい", "面積比が等しい/辺が等しい", "2組の辺が等しい", "すべて同じ"] },
+        { q: "平行線の錯角", a: "等しい", options: ["等しい", "和は180°", "和は90°", "無関係", "常に90°"] },
+        { q: "平行線の同位角", a: "等しい", options: ["等しい", "和は180°", "和は90°", "無関係", "常に90°"] },
+        { q: "n角形の内角の和", a: "180°×(n-2)", options: ["180°×(n-2)", "180°×n", "360°", "180°×(n-1)", "90°×n"] },
+        { q: "多角形の外角の和", a: "360°", options: ["360°", "180°", "90°", "180°×(n-2)", "90°×n"] },
+        { q: "確率の定義", a: "起こる数 / すべての場合の数", options: ["起こる数 / すべての場合の数", "すべての数 / 起こる数", "起こる数 × すべての数", "すべての数 - 起こる数", "起こる数 + すべての数"] },
+        { q: "平方根の定義 (x^2=a)", a: "x = ±√a", options: ["x = ±√a", "x = √a", "x = a/2", "x = a^2", "x = ±a"] },
+        { q: "ひし形の面積", a: "対角線×対角線÷2", options: ["対角線×対角線÷2", "対角線×対角線", "底辺×高さ", "2×(対角線+対角線)", "1/2×底辺×高さ"] },
+        { q: "平行四辺形の面積", a: "底辺×高さ", options: ["底辺×高さ", "底辺×高さ÷2", "対角線の積", "底辺+高さ", "2×(底辺+高さ)"] },
+        { q: "台形の面積", a: "(上底+下底)×高さ÷2", options: ["(上底+下底)×高さ÷2", "(上底+下底)×高さ", "底辺×高さ", "上底×下底", "対角線の積÷2"] },
+        { q: "平均値の定義", a: "合計÷データの数", options: ["合計÷データの数", "データの数÷合計", "中央の値", "最も多い値", "最大+最小"] },
+        { q: "中央値 (メジアン)", a: "大きさ順に並べた中央", options: ["大きさ順に並べた中央", "平均値", "合計", "範囲", "度数"] },
+        { q: "標本調査の推測式", a: "全体 = 標本×(全体の数/標本の数)", options: ["全体 = 標本×(全体の数/標本の数)", "標本×全体の数", "標本÷全体の数", "全体÷標本", "標本+全体"] },
+        { q: "xの増加量とyの増加量", a: "yの増加量 ÷ xの増加量", options: ["yの増加量 ÷ xの増加量", "xの増加量 ÷ yの増加量", "yの増加量 × xの増加量", "yの増加量 + xの増加量", "0"] },
+        { q: "垂直二等分線上の点の性質", a: "両端からの距離が等しい", options: ["両端からの距離が等しい", "角を二等分する", "常に垂直", "並行になる", "中点を通る"] },
+        { q: "角の二等分線上の点の性質", a: "2辺からの距離が等しい", options: ["2辺からの距離が等しい", "角が60°になる", "中点を通る", "常に垂直", "等距離ではない"] },
+        { q: "因数分解: x^2 - y^2", a: "(x+y)(x-y)", options: ["(x+y)(x-y)", "(x-y)^2", "(x+y)^2", "(x-y)(x+2y)", "(x+y)"] },
+        { q: "因数分解: x^2 + (a+b)x + ab", a: "(x+a)(x+b)", options: ["(x+a)(x+b)", "(x-a)(x-b)", "(x+a)^2", "(x+a)(x-b)", "(x+ab)"] },
+        { q: "絶対値の定義", a: "原点からの距離", options: ["原点からの距離", "常に正", "常に負", "数そのもの", "符号を反転させたもの"] }
+    ];
+
+    // ランダムに出題順序をシャッフル
+    const shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+    let currentIndex = 0;
+    let score = 0;
+
+    function shuffleOptions(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function showQuestion() {
+        if (currentIndex < shuffledQuestions.length) {
+            const currentQ = shuffledQuestions[currentIndex];
+            document.getElementById('progress').innerText = `第 ${currentIndex + 1} 問 / 全 ${shuffledQuestions.length} 問`;
+            document.getElementById('question-text').innerText = currentQ.q;
+            document.getElementById('feedback').innerText = "";
+            
+            const optionsArea = document.getElementById('options-area');
+            optionsArea.innerHTML = "";
+            
+            const options = shuffleOptions([...currentQ.options]);
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt);
+                optionsArea.appendChild(btn);
+            });
+        } else {
+            document.getElementById('quiz-area').classList.add('hidden');
+            document.getElementById('result-area').classList.remove('hidden');
+            document.getElementById('score').innerText = score;
+            document.getElementById('total').innerText = shuffledQuestions.length;
+        }
+    }
+
+    function checkAnswer(selected) {
+        const feedback = document.getElementById('feedback');
+        const correct = shuffledQuestions[currentIndex].a;
+
+        if (selected === correct) {
+            feedback.innerText = "正解！";
+            feedback.style.color = "green";
+            score++;
+        } else {
+            feedback.innerText = "不正解。正解は: " + correct;
+            feedback.style.color = "red";
+        }
+
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+        setTimeout(() => {
+            currentIndex++;
+            showQuestion();
+        }, 1200);
+    }
+
+    showQuestion();
+</script>
+</body>
+</html>
